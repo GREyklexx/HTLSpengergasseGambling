@@ -8,8 +8,12 @@ import * as $api_joke from "./routes/api/joke.ts";
 import * as $games_slots from "./routes/games/slots.tsx";
 import * as $greet_name_ from "./routes/greet/[name].tsx";
 import * as $index from "./routes/index.tsx";
+import * as $login from "./routes/login.tsx";
+import * as $register from "./routes/register.tsx";
 import * as $wallet from "./routes/wallet.tsx";
 import * as $Counter from "./islands/Counter.tsx";
+import * as $auth_LoginForm from "./islands/auth/LoginForm.tsx";
+import * as $auth_RegisterForm from "./islands/auth/RegisterForm.tsx";
 import * as $games_SlotsGame from "./islands/games/SlotsGame.tsx";
 import type { Manifest } from "$fresh/server.ts";
 
@@ -21,10 +25,14 @@ const manifest = {
     "./routes/games/slots.tsx": $games_slots,
     "./routes/greet/[name].tsx": $greet_name_,
     "./routes/index.tsx": $index,
+    "./routes/login.tsx": $login,
+    "./routes/register.tsx": $register,
     "./routes/wallet.tsx": $wallet,
   },
   islands: {
     "./islands/Counter.tsx": $Counter,
+    "./islands/auth/LoginForm.tsx": $auth_LoginForm,
+    "./islands/auth/RegisterForm.tsx": $auth_RegisterForm,
     "./islands/games/SlotsGame.tsx": $games_SlotsGame,
   },
   baseUrl: import.meta.url,

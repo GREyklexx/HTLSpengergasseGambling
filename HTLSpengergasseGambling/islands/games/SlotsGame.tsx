@@ -283,7 +283,7 @@ export default function SlotsGame({
         {/* Reels */}
         <div
           className={`grid grid-cols-5 gap-2 mb-4 transition-all duration-300 ${
-            spinning ? "spinning blur-sm" : ""
+            spinning ? "spinning opacity-90" : ""
           }`}
         >
           {reels.map((reel, reelIndex) => (
