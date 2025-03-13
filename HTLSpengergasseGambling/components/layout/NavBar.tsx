@@ -9,11 +9,9 @@ export function NavBar() {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <a href="/" className="flex items-center">
-                <img
-                  className="h-8 w-auto mr-2"
-                  src={asset("images/logo.svg")}
-                  alt="2xBDamageToken Logo"
-                />
+                <div className="h-8 w-8 mr-2 bg-gradient-to-r from-accent-blue via-accent-purple to-accent-green rounded-lg flex items-center justify-center text-white font-bold">
+                  2XBD
+                </div>
                 <span className="font-display text-xl font-bold bg-gradient-to-r from-accent-blue via-accent-purple to-accent-green inline-block text-transparent bg-clip-text animate-glow">
                   2xBDamageToken
                 </span>

@@ -24,6 +24,8 @@ export default function SlotsGame({
   const [message, setMessage] = useState("");
   const [activeFeatures, setActiveFeatures] = useState<SpecialFeature[]>([]);
   const [winningLines, setWinningLines] = useState<number[]>([]);
+  const [jackpotWin, setJackpotWin] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   // Symbol mapping for display
   const symbolMap: Record<string, { emoji: string; color: string }> = {
@@ -71,6 +73,8 @@ export default function SlotsGame({
     setMessage("");
     setActiveFeatures([]);
     setWinningLines([]);
+    setJackpotWin(false);
+    setShowCelebration(false);
 
     // Update balance
     setBalance((prev) => prev - betAmount);
@@ -92,7 +96,16 @@ export default function SlotsGame({
       if (result.success && result.payout > 0) {
         setWinAmount(result.payout);
         setBalance((prev) => prev + result.payout);
-        setMessage(`You won ${result.payout} tokens!`);
+
+        // Add celebration effects for big wins
+        if (result.payout > betAmount * 10) {
+          setJackpotWin(true);
+          setShowCelebration(true);
+          setMessage(`JACKPOT! You won ${result.payout} tokens! 🎉`);
+        } else {
+          setMessage(`You won ${result.payout} tokens!`);
+        }
+
         setWinningLines(result.gameData.winningLines.map((wl: any) => wl.line));
         setActiveFeatures(result.gameData.specialFeatures || []);
 
@@ -104,6 +117,13 @@ export default function SlotsGame({
 
       // End spinning animation
       setSpinning(false);
+
+      // Auto-hide celebration after 5 seconds
+      if (result.payout > betAmount * 10) {
+        setTimeout(() => {
+          setShowCelebration(false);
+        }, 5000);
+      }
     }, 1500); // Spinning animation duration
   };
 
@@ -198,8 +218,39 @@ export default function SlotsGame({
     return false;
   };
 
+  // Render celebration confetti
+  const renderCelebration = () => {
+    if (!showCelebration) return null;
+
+    return (
+      <div className="celebration">
+        {Array(20)
+          .fill(0)
+          .map((_, i) => (
+            <div
+              key={i}
+              className="celebration-particle"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                width: `${Math.random() * 10 + 5}px`,
+                height: `${Math.random() * 10 + 5}px`,
+                backgroundColor: ["#00c8ff", "#b721ff", "#18ff6d", "#ff6b00"][
+                  Math.floor(Math.random() * 4)
+                ],
+                animationDuration: `${Math.random() * 3 + 2}s`,
+                animationDelay: `${Math.random() * 0.5}s`,
+              }}
+            />
+          ))}
+      </div>
+    );
+  };
+
   return (
     <div className="bg-bg-secondary rounded-lg shadow-xl p-6 max-w-3xl mx-auto">
+      {showCelebration && renderCelebration()}
+
       <div className="flex justify-between items-center mb-6">
         <div className="text-lg">
           <span className="text-text-secondary">Balance:</span>
@@ -212,7 +263,9 @@ export default function SlotsGame({
           <span
             className={`font-bold ml-2 ${
               winAmount > 0
-                ? "text-accent-blue animate-pulse"
+                ? jackpotWin
+                  ? "text-slots-primary animate-pulse text-glow"
+                  : "text-accent-blue animate-pulse"
                 : "text-text-secondary"
             }`}
           >
@@ -222,11 +275,15 @@ export default function SlotsGame({
       </div>
 
       {/* Slot Machine */}
-      <div className="bg-bg-primary rounded-lg p-4 border-2 border-slots-primary mb-6">
+      <div
+        className={`bg-bg-primary rounded-lg p-4 border-2 ${
+          jackpotWin ? "jackpot-win border-slots-primary" : "border-gray-800"
+        } mb-6`}
+      >
         {/* Reels */}
         <div
           className={`grid grid-cols-5 gap-2 mb-4 transition-all duration-300 ${
-            spinning ? "blur-sm" : ""
+            spinning ? "spinning blur-sm" : ""
           }`}
         >
           {reels.map((reel, reelIndex) => (
@@ -240,12 +297,16 @@ export default function SlotsGame({
                   className={`flex items-center justify-center h-20 text-4xl 
                     ${
                       isWinningSymbol(reelIndex, rowIndex)
-                        ? "bg-slots-primary bg-opacity-30 animate-pulse"
+                        ? "winning-line bg-slots-primary bg-opacity-30"
                         : ""
                     }
                     ${spinning ? "slots-reel" : ""}`}
                 >
-                  <span className={symbolMap[symbol]?.color || "text-white"}>
+                  <span
+                    className={`slots-symbol ${
+                      symbolMap[symbol]?.color || "text-white"
+                    }`}
+                  >
                     {symbolMap[symbol]?.emoji || "🎯"}
                   </span>
                 </div>
@@ -259,7 +320,11 @@ export default function SlotsGame({
           {message && (
             <p
               className={`text-lg ${
-                winAmount > 0 ? "text-accent-green" : "text-text-secondary"
+                winAmount > 0
+                  ? jackpotWin
+                    ? "text-slots-primary animate-pulse text-glow"
+                    : "text-accent-green"
+                  : "text-text-secondary"
               }`}
             >
               {message}
