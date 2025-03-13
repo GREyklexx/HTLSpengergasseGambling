@@ -1,0 +1,202 @@
+// This is your Prisma schema file for the gambling platform
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../gambling.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              String    @id @default(uuid())
+  username        String    @unique
+  email           String    @unique
+  passwordHash    String
+  walletAddress   String?   @unique
+  balance         Decimal   @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  sessions        Session[]
+  transactions    Transaction[]
+  bets            Bet[]
+  
+  // Profile customization
+  profilePicture  String?
+  profileBanner   String?
+  badges          Badge[]   // Relation to earned badges
+  
+  // Statistics for leaderboards
+  lifetimeWinnings Decimal  @default(0)
+  lifetimeBets    Int       @default(0)
+  highestWin      Decimal   @default(0)
+  
+  // Social features
+  friends         Friendship[] @relation("UserFriends")
+  friendsOf       Friendship[] @relation("FriendsOfUser")
+  sentMessages    Message[]    @relation("MessageSender")
+  receivedMessages Message[]   @relation("MessageReceiver")
+  posts           Post[]
+  likes           Like[]
+  comments        Comment[]
+  gameLeaderboard GameLeaderboardEntry[]
+  
+  // For timeline algorithm
+  interactionScore Decimal     @default(0)
+  lastActive      DateTime     @default(now())
+  
+  isAdmin         Boolean   @default(false)
+}
+
+model Session {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  token       String    @unique
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+}
+
+model Game {
+  id          String    @id @default(uuid())
+  name        String
+  type        String    // "slots", "blackjack", "roulette", etc.
+  description String
+  imageUrl    String?
+  isActive    Boolean   @default(true)
+  minBet      Decimal
+  maxBet      Decimal
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  bets        Bet[]
+  config      String    // Game-specific configuration as JSON string
+  
+  // Game-specific leaderboard data
+  leaderboard GameLeaderboardEntry[]
+}
+
+model GameLeaderboardEntry {
+  id          String    @id @default(uuid())
+  gameId      String
+  game        Game      @relation(fields: [gameId], references: [id])
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  totalWinnings Decimal @default(0)
+  totalBets   Int       @default(0)
+  highestWin  Decimal   @default(0)
+  lastPlayed  DateTime  @default(now())
+  
+  @@unique([gameId, userId])
+}
+
+model Bet {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  gameId        String
+  game          Game        @relation(fields: [gameId], references: [id])
+  amount        Decimal
+  outcome       String?     // Win, loss, etc.
+  profit        Decimal?    // Can be negative for losses
+  gameData      String      // Game-specific data about the bet as JSON string
+  transactionId String?
+  transaction   Transaction? @relation(fields: [transactionId], references: [id])
+  createdAt     DateTime    @default(now())
+  verificationHash String?   // For provably fair verification
+}
+
+model Transaction {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  type          String      // "deposit", "withdrawal", "bet", "win"
+  amount        Decimal
+  status        String      // "pending", "completed", "failed"
+  txHash        String?     // Blockchain transaction hash
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  bet           Bet[]
+}
+
+model Token {
+  id            String      @id @default(uuid())
+  name          String      // "2xBDamageToken"
+  symbol        String      // "2XBD"
+  totalSupply   Decimal
+  contractAddress String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Badge {
+  id          String    @id @default(uuid())
+  name        String
+  description String
+  imageUrl    String
+  users       User[]    // Many-to-many relation with users
+  requirement String    // Description of how to earn
+  createdAt   DateTime  @default(now())
+}
+
+model Friendship {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation("UserFriends", fields: [userId], references: [id])
+  friendId  String
+  friend    User     @relation("FriendsOfUser", fields: [friendId], references: [id])
+  status    String   // "pending", "accepted", "blocked"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([userId, friendId])
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  content     String
+  senderId    String
+  sender      User     @relation("MessageSender", fields: [senderId], references: [id])
+  receiverId  String
+  receiver    User     @relation("MessageReceiver", fields: [receiverId], references: [id])
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Post {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  content     String
+  type        String    // "text", "game_result", "achievement", etc.
+  gameData    String?   // Optional game result data as JSON string
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  likes       Like[]
+  comments    Comment[]
+  
+  // For algorithm ranking
+  engagementScore Decimal @default(0)
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  
+  @@unique([postId, userId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
